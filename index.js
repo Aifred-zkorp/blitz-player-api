@@ -282,7 +282,13 @@ app.get('/', (req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Blitz Player History API running on port ${PORT}`);
-});
+// For Vercel serverless
+module.exports = app;
+
+// For local/Docker
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`Blitz Player History API running on port ${PORT}`);
+  });
+}
