@@ -1,9 +1,13 @@
 const express = require('express');
 const cors = require('cors');
 
+const path = require('path');
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Serve static frontend
+app.use(express.static(path.join(__dirname, 'public')));
 
 // ============================================================================
 // Blitz Player History API
@@ -264,9 +268,9 @@ app.get('/health', (req, res) => {
 });
 
 // ============================================================================
-// GET / — API docs
+// GET /api — API docs (JSON)
 // ============================================================================
-app.get('/', (req, res) => {
+app.get('/api', (req, res) => {
   res.json({
     name: 'Blitz Player History API',
     version: '1.0.0',

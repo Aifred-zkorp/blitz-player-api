@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blitz Player Tracker</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      background: #0a0e1a;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+    .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+    h1 {
+      font-size: 1.8rem;
+      text-align: center;
+      margin: 30px 0 10px;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle {
+      text-align: center;
+      color: #64748b;
+      font-size: 0.85rem;
+      margin-bottom: 30px;
+    }
+    .search-box {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 30px;
+    }
+    .search-box input {
+      flex: 1;
+      padding: 12px 16px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-family: inherit;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-box input:focus { border-color: #60a5fa; }
+    .search-box input::placeholder { color: #475569; }
+    .search-box button {
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .search-box button:hover { opacity: 0.9; }
+    .search-box button:disabled { opacity: 0.5; cursor: wait; }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+    }
+    .stat-card .label { color: #64748b; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; }
+    .stat-card .value { font-size: 1.6rem; font-weight: bold; margin-top: 4px; }
+    .stat-card .value.gold { color: #fbbf24; }
+    .stat-card .value.green { color: #4ade80; }
+    .stat-card .value.blue { color: #60a5fa; }
+    .stat-card .value.purple { color: #a78bfa; }
+    .stat-card .value.red { color: #f87171; }
+
+    .section { margin-bottom: 24px; }
+    .section h2 {
+      font-size: 1rem;
+      color: #94a3b8;
+      margin-bottom: 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #1e293b;
+    }
+
+    .game-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background: #1e293b;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      font-size: 0.85rem;
+    }
+    .game-row .slot { color: #60a5fa; min-width: 100px; }
+    .game-row .rank { color: #fbbf24; min-width: 70px; }
+    .game-row .mmr { min-width: 80px; }
+    .game-row .games-count { color: #94a3b8; }
+    .game-row .active-badge {
+      background: #065f46;
+      color: #34d399;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+    }
+    .game-row .paid-badge {
+      background: #713f12;
+      color: #fbbf24;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+    }
+
+    .mmr-history {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .mmr-dot {
+      width: 36px;
+      height: 36px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      font-weight: bold;
+    }
+    .mmr-dot.up { background: #064e3b; color: #34d399; }
+    .mmr-dot.down { background: #450a0a; color: #fca5a5; }
+    .mmr-dot.neutral { background: #1e293b; color: #94a3b8; }
+
+    .loading { text-align: center; padding: 40px; color: #64748b; }
+    .error { text-align: center; padding: 20px; color: #f87171; background: #450a0a22; border-radius: 8px; }
+    .empty { text-align: center; padding: 40px; color: #475569; }
+
+    .slots-status {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    .slot-badge {
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.7rem;
+    }
+    .slot-badge.online { background: #064e3b; color: #34d399; }
+    .slot-badge.offline { background: #1e293b; color: #475569; }
+
+    @media (max-width: 375px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .game-row { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⚔️ Blitz Player Tracker</h1>
+    <p class="subtitle">Look up any wallet — aggregated stats across all Blitz S0 game slots</p>
+
+    <div id="slots-container" class="slots-status"></div>
+
+    <div class="search-box">
+      <input type="text" id="address-input" placeholder="0x... wallet address" />
+      <button id="search-btn" onclick="lookup()">Search</button>
+    </div>
+
+    <div id="results"></div>
+  </div>
+
+  <script>
+    const API = window.location.origin;
+
+    // Load slots on page load
+    async function loadSlots() {
+      try {
+        const res = await fetch(`${API}/slots`);
+        const data = await res.json();
+        const container = document.getElementById('slots-container');
+        container.innerHTML = data.slots.map(s =>
+          `<span class="slot-badge ${s.status}">${s.slot} ${s.status === 'online' ? '🟢 ' + s.players + 'p' : '⚫'}</span>`
+        ).join('');
+      } catch {}
+    }
+    loadSlots();
+
+    // Handle Enter key
+    document.getElementById('address-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') lookup();
+    });
+
+    async function lookup() {
+      const addr = document.getElementById('address-input').value.trim();
+      const results = document.getElementById('results');
+      const btn = document.getElementById('search-btn');
+
+      if (!addr || !addr.startsWith('0x')) {
+        results.innerHTML = '<div class="error">Please enter a valid 0x wallet address</div>';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Loading...';
+      results.innerHTML = '<div class="loading">🔍 Querying 12 game slots...</div>';
+
+      try {
+        const res = await fetch(`${API}/player/${addr}`);
+        if (!res.ok) throw new Error('API error');
+        const d = await res.json();
+        const s = d.summary;
+
+        if (d.slotsWithData === 0) {
+          results.innerHTML = '<div class="empty">No Blitz data found for this address. The player may not have registered for any S0 games.</div>';
+          return;
+        }
+
+        let html = `
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="label">Games Played</div>
+              <div class="value blue">${s.totalGamesPlayed}</div>
+            </div>
+            <div class="stat-card">
+              <div class="label">Win Rate</div>
+              <div class="value ${s.winRate >= 50 ? 'green' : 'red'}">${s.winRate}%</div>
+            </div>
+            <div class="stat-card">
+              <div class="label">Best Rank</div>
+              <div class="value gold">#${s.bestRank || '—'}</div>
+            </div>
+            <div class="stat-card">
+              <div class="label">Current MMR</div>
+              <div class="value purple">${s.currentMmr || '—'}</div>
+            </div>
+            <div class="stat-card">
+              <div class="label">W / L</div>
+              <div class="value"><span style="color:#4ade80">${s.totalWins}</span> / <span style="color:#f87171">${s.totalLosses}</span></div>
+            </div>
+            <div class="stat-card">
+              <div class="label">Slots Active</div>
+              <div class="value blue">${d.slotsWithData}</div>
+            </div>
+          </div>
+        `;
+
+        // MMR History dots
+        if (s.mmrHistory.length > 0) {
+          html += `<div class="section"><h2>📈 MMR History</h2><div class="mmr-history">`;
+          for (const h of s.mmrHistory) {
+            const prev = s.mmrHistory[s.mmrHistory.indexOf(h) - 1];
+            const cls = !prev ? 'neutral' : h.mmr > (prev?.mmr || 0) ? 'up' : 'down';
+            html += `<div class="mmr-dot ${cls}" title="Slot: ${h.slot} | Rank: #${h.rank}">${h.mmr}</div>`;
+          }
+          html += `</div></div>`;
+        }
+
+        // Games per slot
+        if (d.games.length > 0) {
+          html += `<div class="section"><h2>🎮 Games Per Slot</h2>`;
+          for (const g of d.games) {
+            html += `<div class="game-row">
+              <span class="slot">${g.slot}</span>
+              <span class="rank">Rank #${g.finalRank || '—'}</span>
+              <span class="mmr">MMR: ${g.mmrChanges.length > 0 ? g.mmrChanges[g.mmrChanges.length-1].newMmr : '—'}</span>
+              <span class="games-count">${g.gamesInSlot} game${g.gamesInSlot !== 1 ? 's' : ''}</span>
+              ${g.isActive ? '<span class="active-badge">ACTIVE</span>' : ''}
+              ${g.paid ? '<span class="paid-badge">PAID</span>' : ''}
+            </div>`;
+          }
+          html += `</div>`;
+        }
+
+        // Active games
+        if (s.activeGames.length > 0) {
+          html += `<div class="section"><h2>🔴 Active Games</h2><p>${s.activeGames.join(', ')}</p></div>`;
+        }
+
+        results.innerHTML = html;
+      } catch (e) {
+        results.innerHTML = `<div class="error">Error: ${e.message}. Try again.</div>`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Search';
+      }
+    }
+  </script>
+</body>
+</html>
